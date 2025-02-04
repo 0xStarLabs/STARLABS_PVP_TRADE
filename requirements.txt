@@ -1,0 +1,5 @@
+aiofiles==24.1.0
+eth_account==0.13.4
+loguru==0.7.3
+pyrofork==2.3.58
+questionary==2.1.0
