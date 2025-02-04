@@ -15,7 +15,7 @@ from src.utils.confirmation_messages import (
     ORDER_PLACED_MESSAGE,
     CLOSED_POSITION_MESSAGE
 )
-from config import LEVERAGE, TIME_RANGE
+from config import LEVERAGE, TIME_RANGE, BETWEEN_ACCOUNTS_IN_ONE_TRADE_PAUSE_RANGE, PAUSE_BETWEEN_TRADE_SIDES
 import random
 
 
@@ -328,7 +328,24 @@ class Trade:
             with open(self.instructions_file, "w") as f:
                 json.dump(self.instructions, f, indent=4)
             logger.info(f"Instructions updated for {trade_id}")
- 
+
+    async def execute_positions_with_delay(self, clients: dict, accounts: list, side: str, pair: str):
+        """Execute positions for a group of accounts with delay between them"""
+        for account in accounts:
+            client = clients[account['telegram']]
+            task = self.execute_position(
+                app=client,
+                side=side,
+                volume=account['volume'],
+                pair=pair
+            )
+            # Start the task
+            asyncio.create_task(task)
+            # Wait before starting next account
+            delay = random.randint(BETWEEN_ACCOUNTS_IN_ONE_TRADE_PAUSE_RANGE[0], 
+                                 BETWEEN_ACCOUNTS_IN_ONE_TRADE_PAUSE_RANGE[1])
+            await asyncio.sleep(delay)
+
     async def trade(self):
         """Execute all trades in the instructions"""
         try:
@@ -353,32 +370,38 @@ class Trade:
                 logger.info(f"Executing {trade_id}")
                 pair = trade_info['pair']
 
-                # Execute long positions
-                long_tasks = []
-                for account in trade_info['long']['accounts']:
-                    client = clients[account['telegram']]
-                    task = self.execute_position(
-                        app=client,
-                        side="long",
-                        volume=account['volume'],
-                        pair=pair
-                    )
-                    long_tasks.append(task)
+                # Randomly decide which side goes first
+                first_side = random.choice(['long', 'short'])
+                second_side = 'short' if first_side == 'long' else 'long'
+                logger.debug(f"Starting with {first_side} side")
 
-                # Execute short positions
-                short_tasks = []
-                for account in trade_info['short']['accounts']:
-                    client = clients[account['telegram']]
-                    task = self.execute_position(
-                        app=client,
-                        side="short",
-                        volume=account['volume'],
-                        pair=pair
-                    )
-                    short_tasks.append(task)
+                # Prepare tasks for both sides
+                first_task = self.execute_positions_with_delay(
+                    clients=clients,
+                    accounts=trade_info[first_side]['accounts'],
+                    side=first_side,
+                    pair=pair
+                )
 
-                # Wait for all positions to be opened
-                await asyncio.gather(*long_tasks, *short_tasks)
+                # Start first side
+                first_side_task = asyncio.create_task(first_task)
+                
+                # Wait random time before starting second side
+                delay = random.randint(PAUSE_BETWEEN_TRADE_SIDES[0], PAUSE_BETWEEN_TRADE_SIDES[1])
+                logger.debug(f"Waiting {delay} seconds before starting {second_side} side")
+                await asyncio.sleep(delay)
+
+                # Start second side
+                second_task = self.execute_positions_with_delay(
+                    clients=clients,
+                    accounts=trade_info[second_side]['accounts'],
+                    side=second_side,
+                    pair=pair
+                )
+                second_side_task = asyncio.create_task(second_task)
+
+                # Wait for both sides to complete
+                await asyncio.gather(first_side_task, second_side_task)
                 logger.success(f"All positions opened for {trade_id}")
                 await asyncio.sleep(random.randint(TIME_RANGE[0], TIME_RANGE[1])) 
 
