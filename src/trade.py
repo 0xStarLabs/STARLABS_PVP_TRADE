@@ -15,7 +15,7 @@ from src.utils.confirmation_messages import (
     ORDER_PLACED_MESSAGE,
     CLOSED_POSITION_MESSAGE
 )
-from config import LEVERAGE, TIME_RANGE, BETWEEN_ACCOUNTS_IN_ONE_TRADE_PAUSE_RANGE, PAUSE_BETWEEN_TRADE_SIDES
+from config import LEVERAGE, BETWEEN_OPEN_CLOSE_TRADE_TIME_RANGE, BETWEEN_ACCOUNTS_IN_ONE_TRADE_PAUSE_RANGE, PAUSE_BETWEEN_TRADE_SIDES, BETWEEN_CLOSE_NEXT_TRADE_TIME_RANGE
 import random
 
 
@@ -403,7 +403,7 @@ class Trade:
                 # Wait for both sides to complete
                 await asyncio.gather(first_side_task, second_side_task)
                 logger.success(f"All positions opened for {trade_id}")
-                await asyncio.sleep(random.randint(TIME_RANGE[0], TIME_RANGE[1])) 
+                await asyncio.sleep(random.randint(BETWEEN_OPEN_CLOSE_TRADE_TIME_RANGE[0], BETWEEN_OPEN_CLOSE_TRADE_TIME_RANGE[1])) 
 
                 # Close all positions
                 close_tasks = []
@@ -418,7 +418,7 @@ class Trade:
                 self.update_instructions_file(trade_id)
 
                 # Wait before next trade
-                await asyncio.sleep(10)
+                await asyncio.sleep(random.randint(BETWEEN_CLOSE_NEXT_TRADE_TIME_RANGE[0], BETWEEN_CLOSE_NEXT_TRADE_TIME_RANGE[1])) 
 
             # Stop all clients
             for client in clients.values():
