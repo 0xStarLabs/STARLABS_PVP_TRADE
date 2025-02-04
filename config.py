@@ -1,6 +1,7 @@
 CYCLE_MODE = False
 
-TIME_RANGE = [10, 30]  #- пауза между трейдами 
+BETWEEN_OPEN_CLOSE_TRADE_TIME_RANGE = [10, 30]  #- пауза между открытием и закрытием трейда
+BETWEEN_CLOSE_NEXT_TRADE_TIME_RANGE = [10, 20] #- пауза между закрытием и открытием следующего трейда
 BETWEEN_ACCOUNTS_IN_ONE_TRADE_PAUSE_RANGE = [1, 3] #- пауза между аккаунтами в одном трейде
 PAUSE_BETWEEN_TRADE_SIDES = [10, 20] #- пауза между запуском сторон в одном трейде
 VOLUME_RANGE = [16, 25] #- объем трейда
@@ -8,7 +9,6 @@ VOLUME_RANGE = [16, 25] #- объем трейда
 AMOUNT_MULTIPLIER_RANGE = [0.9, 1.1] #- множитель объема для встречного трейда
 TRADES_COUNT_RANGE = [3, 5] #- количество трейдов в одной инструкции
 LEVERAGE = 1 #- кредитное плечо
-
 
 
 """
