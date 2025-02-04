@@ -11,7 +11,6 @@ from questionary import Choice
 # Import configuration
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from config import (
-    TIME_RANGE,
     VOLUME_RANGE,
     AMOUNT_MULTIPLIER_RANGE,
     TRADES_COUNT_RANGE,
@@ -22,15 +21,18 @@ from config import (
 
 
 def generate_trade_volume() -> float:
-    """Generate a random trade volume within the configured range"""
-    return round(random.uniform(VOLUME_RANGE[0], VOLUME_RANGE[1]), 8)
+    """Generate a random trade volume within the configured range with random precision"""
+    volume = random.uniform(VOLUME_RANGE[0], VOLUME_RANGE[1])
+    precision = random.randint(2, 8)  # Random precision between 2 and 8 decimal places
+    return round(volume, precision)
 
 
 def calculate_counter_volume(volume: float) -> float:
-    """Calculate counter trade volume with dispersion"""
+    """Calculate counter trade volume with dispersion and random precision"""
     dispersion = random.uniform(DISPERSION_RANGE_PERCENT[0], DISPERSION_RANGE_PERCENT[1])
     counter_volume = volume * (1 + dispersion)
-    return round(counter_volume, 8)
+    precision = random.randint(2, 8)  # Random precision between 2 and 8 decimal places
+    return round(counter_volume, precision)
 
 
 def generate_trade_instructions(accounts: List[Dict]) -> Dict:
