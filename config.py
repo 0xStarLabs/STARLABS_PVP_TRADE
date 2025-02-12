@@ -7,7 +7,7 @@ PAUSE_BETWEEN_TRADE_SIDES = [10, 20] #- пауза между запуском �
 VOLUME_RANGE = [16, 25] #- объем трейда
 
 AMOUNT_MULTIPLIER_RANGE = [0.9, 1.1] #- множитель объема для встречного трейда
-TRADES_COUNT_RANGE = [3, 5] #- количество трейдов в одной инструкции
+TRADES_COUNT_RANGE = [1, 2] #- количество трейдов в одной инструкции
 LEVERAGE = 1 #- кредитное плечо
 
 
@@ -41,3 +41,6 @@ TICKERS = [
 # Example: 0.2 means the split can be up to 20% uneven (for 10 accounts: 4-6, 3-7 splits are possible)
 # but the volume of the 3 will be approximately equal to the volume of the 7
 ACCOUNT_DISTRIBUTION_IMBALANCE = 0.2  # 20% maximum imbalance
+
+MIN_VOLUME_PER_ACCOUNT = 15  # Minimum volume allowed per account
+
