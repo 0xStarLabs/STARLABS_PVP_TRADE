@@ -16,6 +16,7 @@ from config import (
     TRADES_COUNT_RANGE,
     DISPERSION_RANGE_PERCENT,
     TICKERS,
+    ACCOUNT_DISTRIBUTION_IMBALANCE,
 )
 
 
@@ -36,7 +37,7 @@ def calculate_counter_volume(volume: float) -> float:
 
 
 def generate_trade_instructions(accounts: List[Dict]) -> Dict:
-    """Generate trade instructions based on configuration"""
+    """Generate trade instructions based on configuration, using all accounts for each trade"""
     if len(accounts) < 2:
         raise ValueError("Need at least 2 accounts for trading")
 
@@ -55,15 +56,35 @@ def generate_trade_instructions(accounts: List[Dict]) -> Dict:
     }
 
     total_volume = 0
+    total_accounts = len(accounts)
     
     for i in range(trades_count):
         # Generate base volume for this trade
         base_volume = generate_trade_volume()
         counter_volume = calculate_counter_volume(base_volume)
         
-        # Randomly select accounts for long and short positions
-        long_account = random.choice(accounts)
-        short_account = random.choice([acc for acc in accounts if acc != long_account])
+        # Calculate random split within configured imbalance range
+        mid_point = total_accounts // 2
+        max_deviation = int(total_accounts * ACCOUNT_DISTRIBUTION_IMBALANCE / 2)
+        if max_deviation < 1:
+            max_deviation = 1
+            
+        deviation = random.randint(-max_deviation, max_deviation)
+        long_count = mid_point + deviation
+        
+        # Ensure we always have at least one account on each side
+        long_count = max(1, min(long_count, total_accounts - 1))
+        short_count = total_accounts - long_count
+        
+        # Randomly assign accounts to sides
+        all_accounts = accounts.copy()
+        random.shuffle(all_accounts)
+        long_accounts = all_accounts[:long_count]
+        short_accounts = all_accounts[long_count:]
+        
+        # Distribute volumes among accounts on each side
+        long_volumes = distribute_volume(base_volume, len(long_accounts))
+        short_volumes = distribute_volume(counter_volume, len(short_accounts))
         
         trade = {
             "pair": random.choice(TICKERS),
@@ -71,22 +92,22 @@ def generate_trade_instructions(accounts: List[Dict]) -> Dict:
             "long": {
                 "accounts": [
                     {
-                        "telegram": long_account["session_name"],
-                        "volume": base_volume
-                    }
+                        "telegram": account["session_name"],
+                        "volume": volume
+                    } for account, volume in zip(long_accounts, long_volumes)
                 ],
                 "total_long_side_volume": base_volume
             },
             "short": {
                 "accounts": [
                     {
-                        "telegram": short_account["session_name"],
-                        "volume": counter_volume
-                    }
+                        "telegram": account["session_name"],
+                        "volume": volume
+                    } for account, volume in zip(short_accounts, short_volumes)
                 ],
                 "total_short_side_volume": counter_volume
             },
-            "total_volume": base_volume + counter_volume  # Total volume for both sides
+            "total_volume": base_volume + counter_volume
         }
         
         instructions["trades"][f"trade{i+1}"] = trade
@@ -95,7 +116,7 @@ def generate_trade_instructions(accounts: List[Dict]) -> Dict:
     instructions["total_volume"] = round(total_volume, 8)
 
     # Save instructions to file with modified filename format
-    filename = current_time.strftime("%d-%m-%Y_%H-%M-%S") + ".json"  # Changed : to - and added _
+    filename = current_time.strftime("%d-%m-%Y_%H-%M-%S") + ".json"
     os.makedirs("data/instructions", exist_ok=True)
     
     file_path = os.path.join("data/instructions", filename)
@@ -104,3 +125,21 @@ def generate_trade_instructions(accounts: List[Dict]) -> Dict:
     
     logger.info(f"Generated trade instructions saved to {file_path}")
     return instructions
+
+def distribute_volume(total_volume: float, num_parts: int) -> List[float]:
+    """Distribute a total volume into random parts that sum up to the total"""
+    if num_parts <= 0:
+        return []
+    
+    # Generate random weights
+    weights = [random.random() for _ in range(num_parts)]
+    weight_sum = sum(weights)
+    
+    # Distribute volume according to weights
+    volumes = [round((w / weight_sum) * total_volume, 8) for w in weights]
+    
+    # Adjust for rounding errors
+    diff = total_volume - sum(volumes)
+    volumes[-1] = round(volumes[-1] + diff, 8)
+    
+    return volumes
