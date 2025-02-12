@@ -17,6 +17,7 @@ from config import (
     DISPERSION_RANGE_PERCENT,
     TICKERS,
     ACCOUNT_DISTRIBUTION_IMBALANCE,
+    MIN_VOLUME_PER_ACCOUNT,
 )
 
 
@@ -127,19 +128,36 @@ def generate_trade_instructions(accounts: List[Dict]) -> Dict:
     return instructions
 
 def distribute_volume(total_volume: float, num_parts: int) -> List[float]:
-    """Distribute a total volume into random parts that sum up to the total"""
+    """
+    Distribute a total volume into random parts that sum up to the total.
+    Raises ValueError if any account would receive less than MIN_VOLUME_PER_ACCOUNT
+    """
     if num_parts <= 0:
         return []
+    
+    # Check if even distribution would be below minimum
+    if total_volume / num_parts < MIN_VOLUME_PER_ACCOUNT:
+        raise ValueError(
+            f"Volume {total_volume} is too low for {num_parts} accounts. "
+            f"Please increase VOLUME_RANGE to ensure each account gets at least {MIN_VOLUME_PER_ACCOUNT}"
+        )
     
     # Generate random weights
     weights = [random.random() for _ in range(num_parts)]
     weight_sum = sum(weights)
     
-    # Distribute volume according to weights
-    volumes = [round((w / weight_sum) * total_volume, 8) for w in weights]
+    # Distribute volume according to weights with random precision
+    volumes = []
+    remaining_volume = total_volume
     
-    # Adjust for rounding errors
-    diff = total_volume - sum(volumes)
-    volumes[-1] = round(volumes[-1] + diff, 8)
+    for i, w in enumerate(weights[:-1]):  # Process all except last weight
+        precision = random.randint(2, 8)
+        volume = round((w / weight_sum) * total_volume, precision)
+        volumes.append(volume)
+        remaining_volume -= volume
+    
+    # Last volume gets remaining amount to ensure total adds up exactly
+    precision = random.randint(2, 8)
+    volumes.append(round(remaining_volume, precision))
     
     return volumes
