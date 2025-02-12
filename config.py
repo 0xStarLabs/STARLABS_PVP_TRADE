@@ -37,3 +37,7 @@ TICKERS = [
               "HYPE"
 ]   
 
+# Maximum allowed imbalance in account distribution (in percentage of total accounts)
+# Example: 0.2 means the split can be up to 20% uneven (for 10 accounts: 4-6, 3-7 splits are possible)
+# but the volume of the 3 will be approximately equal to the volume of the 7
+ACCOUNT_DISTRIBUTION_IMBALANCE = 0.2  # 20% maximum imbalance
